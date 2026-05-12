@@ -23,11 +23,12 @@ data accordingly.
 ## Build
 
 ```
-go build ./...
+GOPRIVATE=git.kom.e-technik.tu-darmstadt.de go build ./...
 ```
 
-Requires Go 1.24 and a local `moqtransport` checkout one directory up (see the
-`replace` directive in `go.mod`).
+Requires Go 1.24. The `replace` in `go.mod` points to a moqtransport fork
+hosted on the TU Darmstadt KOM GitLab; `GOPRIVATE` (or a global git
+`insteadOf` rule) is needed to fetch it over SSH.
 
 ## Quick run
 
