@@ -15,4 +15,4 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 )
 
-replace github.com/mengelbart/moqtransport => git.kom.e-technik.tu-darmstadt.de/staff/papers/moq-timeout/moqtransport.git v0.0.0-20260411070518-4b4a10dad4c7
+replace github.com/mengelbart/moqtransport => github.com/harlequix/moqtransport v0.0.0-20260411070518-4b4a10dad4c7

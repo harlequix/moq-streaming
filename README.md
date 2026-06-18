@@ -1,63 +1,47 @@
 # moq-streaming
 
-A small testbed for measuring per-object delivery timeouts over Media over
-QUIC (MoQ). The pipeline is a publisher, a relay, and one or more subscribers,
-connected by QUIC and using `RESET_STREAM_AT` on timeout to partially deliver
-subgroups.
-
-The relay is the object under test: each subscriber can request a delivery
-timeout and a reset strategy, and the relay drops or partially delivers group
-data accordingly.
+Publisher, relay, and subscriber for measuring per-object delivery timeouts
+over Media over QUIC (MoQ). When an object misses its delivery timeout, the
+relay applies a reset strategy (`RESET_STREAM` or `RESET_STREAM_AT`) to drop or
+partially deliver the rest of its group.
 
 ## Layout
 
-- `cmd/publisher`, `cmd/relay`, `cmd/subscriber` — CLI entry points.
-- `publisher/` — ffmpeg demuxer, annex-B NAL parser, MoQ publisher mapping one
-  GoP per MoQ group.
-- `relay/` — track cache, per-subscriber forward loops, timeout strategies.
-- `subscriber/` — QUIC client, optional MPEG-TS muxer, mpv sink with IPC for
-  frame-level display logs.
-- `testdata/` — video samples (a few small clips are checked in; supply your
-  own `.mp4` for anything larger).
+- `cmd/publisher`, `cmd/relay`, `cmd/subscriber`: CLI entry points.
+- `publisher/`: ffmpeg demux, Annex-B NAL parsing, one GoP per MoQ group.
+- `relay/`: track cache, per-subscriber forward loop, timeout strategies.
+- `subscriber/`: QUIC client and mpv sink with per-frame display logging.
 
 ## Build
 
-```
-GOPRIVATE=git.kom.e-technik.tu-darmstadt.de go build ./...
-```
+    go build ./...
 
-Requires Go 1.24. The `replace` in `go.mod` points to a moqtransport fork
-hosted on the TU Darmstadt KOM GitLab; `GOPRIVATE` (or a global git
-`insteadOf` rule) is needed to fetch it over SSH.
+Requires Go 1.24 or newer. The `replace` in `go.mod` points to a moqtransport
+fork (`github.com/harlequix/moqtransport`, branch `moq-timeout`) that adds
+`RESET_STREAM_AT`; it is fetched automatically.
 
-## Quick run
+## Run
 
-```
-./run-test.sh testdata/test_10s.mp4 12
-```
+The publisher reads an H.264 file through ffmpeg; the subscriber renders with
+mpv. A minimal publisher to relay to subscriber chain:
 
-This builds the three binaries and starts publisher, relay, and two
-subscribers for 12 seconds, writing CSV logs and process logs under
-`results/<timestamp>/`.
+    ./moq-publisher --video path/to/clip.mp4 --namespace live --track video --listen :4443
+    ./moq-relay --upstream 127.0.0.1:4443 --listen :4444 --namespace live --track video --strategy reset-at-keyframe --default-timeout 200ms
+    ./moq-subscriber --relay 127.0.0.1:4444 --namespace live --track video
 
-## Timeout strategies
+`run-test.sh <video> <seconds>` runs the same pipeline and writes CSV logs.
+
+## Reset strategies
 
 Selected on the relay via `--strategy`:
 
-- `none` — deliver everything reliably.
-- `reset-stream` — reset the whole subgroup on timeout.
-- `reset-at-object` — `RESET_STREAM_AT` after each completed object.
-- `reset-at-keyframe` — `RESET_STREAM_AT` after the I-frame only.
-
-`--default-timeout` sets the per-object deadline when the subscriber does not
-request one via MoQ `DELIVERY_TIMEOUT`.
+- `none`: deliver everything reliably.
+- `reset-stream`: reset the whole subgroup on timeout.
+- `reset-at-object`: `RESET_STREAM_AT` after each completed object.
+- `reset-at-keyframe`: `RESET_STREAM_AT` after the keyframe only.
 
 ## Tests
 
-```
-go test ./...
-```
+    go test ./...
 
-Most tests spin up an in-process publisher/relay/subscriber over loopback
-QUIC. The `publisher/demux*` tests and the `Test*Strategy*` tests require
-`ffmpeg` on `PATH`.
+The demux and strategy tests require `ffmpeg` on `PATH`.
