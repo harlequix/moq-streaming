@@ -14,7 +14,9 @@ partially deliver the rest of its group.
 
 ## Build
 
-    go build ./...
+    go build -o moq-publisher ./cmd/publisher
+    go build -o moq-relay ./cmd/relay
+    go build -o moq-subscriber ./cmd/subscriber
 
 Requires Go 1.24 or newer. The `replace` in `go.mod` points to a moqtransport
 fork (`github.com/harlequix/moqtransport`, branch `moq-timeout`) that adds
@@ -23,9 +25,10 @@ fork (`github.com/harlequix/moqtransport`, branch `moq-timeout`) that adds
 ## Run
 
 The publisher reads an H.264 file through ffmpeg; the subscriber renders with
-mpv. A minimal publisher to relay to subscriber chain:
+mpv. `testdata/testsrc_30s.mp4` is a 30 s test clip (640x360, 30 fps, keyframe
+every 2 s, no B-frames). A minimal publisher to relay to subscriber chain:
 
-    ./moq-publisher --video path/to/clip.mp4 --namespace live --track video --listen :4443
+    ./moq-publisher --video testdata/testsrc_30s.mp4 --namespace live --track video --listen :4443
     ./moq-relay --upstream 127.0.0.1:4443 --listen :4444 --namespace live --track video --strategy reset-at-keyframe --default-timeout 200ms
     ./moq-subscriber --relay 127.0.0.1:4444 --namespace live --track video
 

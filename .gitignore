@@ -2,6 +2,7 @@ moq-relay
 moq-publisher
 moq-subscriber
 *.csv
-testdata/
+testdata/*
+!testdata/testsrc_30s.mp4
 results/
 experiment/*
