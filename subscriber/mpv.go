@@ -46,6 +46,7 @@ type MpvProcess struct {
 	luaScript string
 	fps       float64 // explicit framerate (0 = auto-detect)
 	container string  // "none" or "mpegts"
+	untimed   bool
 	cmd       *exec.Cmd
 	stdin     io.WriteCloser
 	muxer     *TSMuxer // non-nil when container == "mpegts"
@@ -56,7 +57,7 @@ type MpvProcess struct {
 
 // NewMpvProcess prepares an mpv process. fps=0 means auto-detect; container
 // is "none" or "mpegts".
-func NewMpvProcess(luaScript string, fps float64, container string) *MpvProcess {
+func NewMpvProcess(luaScript string, fps float64, container string, untimed bool) *MpvProcess {
 	if container == "" {
 		container = "none"
 	}
@@ -65,6 +66,7 @@ func NewMpvProcess(luaScript string, fps float64, container string) *MpvProcess 
 		luaScript: luaScript,
 		fps:       fps,
 		container: container,
+		untimed:   untimed,
 		ipcPath:   ipcPath,
 		frameCh:   make(chan MpvFrame, 256),
 	}
@@ -79,6 +81,10 @@ func (m *MpvProcess) Start() error {
 		"--script=" + m.luaScript,
 		"--no-terminal",
 		"--vo=null",
+		"--profile=low-latency",
+	}
+	if m.untimed {
+		args = append(args, "--untimed")
 	}
 
 	switch m.container {

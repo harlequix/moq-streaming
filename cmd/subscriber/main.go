@@ -34,6 +34,7 @@ func run() error {
 		embeddedPTS bool
 		fps         float64
 		container   string
+		untimed     bool
 		debug       bool
 	)
 
@@ -47,6 +48,7 @@ func run() error {
 	flag.BoolVar(&embeddedPTS, "embedded-pts", false, "extract 8-byte PTS header from object payloads")
 	flag.Float64Var(&fps, "fps", 0, "explicit framerate for mpv (0 = auto-detect)")
 	flag.StringVar(&container, "container", "none", "container format for mpv: none (raw h264) or mpegts")
+	flag.BoolVar(&untimed, "untimed", false, "show frames as soon as they are decoded instead of pacing playback")
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 	flag.Parse()
 
@@ -90,6 +92,7 @@ func run() error {
 		EmbeddedPTS:    embeddedPTS,
 		FPS:            fps,
 		Container:      container,
+		Untimed:        untimed,
 	}
 	if nullSink {
 		cfg.Sink = subscriber.NewNullSink()

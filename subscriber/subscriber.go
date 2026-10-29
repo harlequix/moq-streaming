@@ -33,6 +33,7 @@ type SubConfig struct {
 	EmbeddedPTS bool    // extract 8-byte PTS header from object payloads
 	FPS         float64 // explicit framerate for mpv (0 = auto-detect)
 	Container   string  // "none" (default) or "mpegts"
+	Untimed     bool    // mpv shows frames as soon as they are decoded
 }
 
 type sinkFrame struct {
@@ -66,7 +67,7 @@ func (s *Subscriber) Run(ctx context.Context) error {
 		if luaPath == "" {
 			return fmt.Errorf("lua script path required when no Sink provided")
 		}
-		mpv := NewMpvProcess(luaPath, s.cfg.FPS, s.cfg.Container)
+		mpv := NewMpvProcess(luaPath, s.cfg.FPS, s.cfg.Container, s.cfg.Untimed)
 		sink = mpv
 	}
 	if err := sink.Start(); err != nil {
