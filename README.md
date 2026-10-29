@@ -18,6 +18,10 @@ partially deliver the rest of its group.
     go build -o moq-relay ./cmd/relay
     go build -o moq-subscriber ./cmd/subscriber
 
+`make build` does the same, `make publisher`, `make relay`, and
+`make subscriber` build one binary each. The Makefile also has `test`, `fmt`,
+`run-test`, `docker` (builds the images), and `clean` (removes the binaries).
+
 Requires Go 1.24 or newer. The `replace` in `go.mod` points to a moqtransport
 fork (`github.com/harlequix/moqtransport`, branch `moq-timeout`) that adds
 `RESET_STREAM_AT`; it is fetched automatically.
