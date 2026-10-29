@@ -280,6 +280,10 @@ func (r *Relay) makeSubscribeHandler(connCtx context.Context) moqtransport.Subsc
 
 		strategy := r.cfg.Strategy
 		if timeout == 0 {
+			if strategy != StrategyNone {
+				r.logger.Warn("subscription has no delivery timeout, using strategy none",
+					"configured_strategy", strategy)
+			}
 			strategy = StrategyNone
 		}
 
