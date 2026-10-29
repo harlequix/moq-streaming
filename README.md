@@ -22,6 +22,11 @@ Requires Go 1.24 or newer. The `replace` in `go.mod` points to a moqtransport
 fork (`github.com/harlequix/moqtransport`, branch `moq-timeout`) that adds
 `RESET_STREAM_AT`; it is fetched automatically.
 
+Running needs `ffmpeg` and `ffprobe` (publisher, `run-test.sh`), `mpv`
+(subscriber), and `column` (`run-test.sh` summary). On Ubuntu:
+
+    sudo apt install golang-go ffmpeg mpv bsdextrautils
+
 ## Run
 
 The publisher reads an H.264 file through ffmpeg; the subscriber renders with
@@ -30,9 +35,16 @@ every 2 s, no B-frames). A minimal publisher to relay to subscriber chain:
 
     ./moq-publisher --video testdata/testsrc_30s.mp4 --namespace live --track video --listen :4443
     ./moq-relay --upstream 127.0.0.1:4443 --listen :4444 --namespace live --track video --strategy reset-at-keyframe --default-timeout 200ms
-    ./moq-subscriber --relay 127.0.0.1:4444 --namespace live --track video
+    ./moq-subscriber --relay 127.0.0.1:4444 --namespace live --track video --fps 30
 
-`run-test.sh <video> <seconds>` runs the same pipeline and writes CSV logs.
+Set `--fps` to the clip's framerate! Without it mpv assumes 25 fps for raw
+H.264 and the display log timestamps are off. Encode without B-frames, with
+`-bf 0` or `-profile:v baseline`. With B-frames the publisher's PTS are wrong
+and the results are invalid.
+
+`run-test.sh [video] [seconds]` (defaults: the test clip, 30 s) starts a
+publisher, a relay with `--strategy none`, and two subscribers with `--fps`
+read from the clip via ffprobe, then writes CSV logs to `results/`.
 
 ## Reset strategies
 
