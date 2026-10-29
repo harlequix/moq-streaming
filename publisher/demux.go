@@ -79,7 +79,7 @@ func (d *Demuxer) Start(ctx context.Context) (io.Reader, error) {
 	ctx, d.cancel = context.WithCancel(ctx)
 	args := []string{}
 	if d.realtime {
-		args = append(args, "-re")
+		args = append(args, "-re", "-readrate_initial_burst", "0.001")
 	}
 	args = append(args,
 		"-i", d.path,
