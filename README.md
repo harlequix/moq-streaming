@@ -43,8 +43,46 @@ H.264 and the display log timestamps are off. Encode without B-frames, with
 and the results are invalid.
 
 `run-test.sh [video] [seconds]` (defaults: the test clip, 30 s) starts a
-publisher, a relay with `--strategy none`, and two subscribers with `--fps`
-read from the clip via ffprobe, then writes CSV logs to `results/`.
+publisher, a relay with `--strategy none`, and a subscriber with `--fps` read
+from the clip via ffprobe, then writes CSV logs to `results/`.
+
+## Docker
+
+Each component has an image on ghcr.io, built on every push to `main`
+(`:latest`) and on every tag (`:<tag>`):
+
+    docker pull ghcr.io/harlequix/moq-publisher
+    docker pull ghcr.io/harlequix/moq-relay
+    docker pull ghcr.io/harlequix/moq-subscriber
+
+The images take the same flags as the binaries, for example:
+
+    docker run --rm --network host ghcr.io/harlequix/moq-relay --upstream 127.0.0.1:4443 --listen :4444 --namespace live --track video
+
+The publisher image contains the test clip at `/data/testsrc_30s.mp4`. The
+subscriber runs mpv headless.
+
+`compose.yml` replicates `run-test.sh` with a publisher, a relay, and a
+subscriber:
+
+    docker compose pull
+    docker compose up --abort-on-container-exit
+
+Use `docker compose build` instead of `pull` to build the images from the
+checkout. Settings are environment variables:
+
+- `VIDEO`: clip on the host (default `testdata/testsrc_30s.mp4`)
+- `FPS`: the clip's framerate (default 30)
+- `DURATION`: seconds the subscriber runs (default 30)
+- `RUN`: results subdirectory (default `compose`)
+- `RELAY_FLAGS`: extra relay flags, e.g. `"--strategy reset-at-keyframe --default-timeout 200ms"`
+- `TAG`: image tag (default `latest`)
+
+Results land in `results/$RUN/` with the same layout as `run-test.sh`. Under
+rootful Docker the files are owned by root. If `results/` does not exist yet,
+Docker creates it as root and `run-test.sh` can no longer write to it. Run
+`mkdir -p results` before the first compose run, or fix it afterwards with
+`sudo chown -R $(id -u):$(id -g) results`.
 
 ## Reset strategies
 

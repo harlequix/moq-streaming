@@ -1,0 +1,36 @@
+services:
+  publisher:
+    image: ghcr.io/harlequix/moq-publisher:${TAG:-latest}
+    build:
+      context: .
+      target: publisher
+    command: >-
+      --video /video.mp4 --namespace live --track video --listen :4443
+      --manifest /results/manifest.csv
+    volumes:
+      - ${VIDEO:-./testdata/testsrc_30s.mp4}:/video.mp4:ro
+      - ./results/${RUN:-compose}:/results
+
+  relay:
+    image: ghcr.io/harlequix/moq-relay:${TAG:-latest}
+    build:
+      context: .
+      target: relay
+    command: >-
+      --listen :4444 --upstream publisher:4443 --namespace live --track video
+      ${RELAY_FLAGS:-}
+
+  sub1:
+    image: ghcr.io/harlequix/moq-subscriber:${TAG:-latest}
+    build:
+      context: .
+      target: subscriber
+    depends_on: [relay]
+    environment:
+      DURATION: ${DURATION:-30}
+    entrypoint: ["sh", "-c", "sleep 2 && exec timeout \"$$DURATION\" moq-subscriber \"$$@\"", "--"]
+    command: >-
+      --relay relay:4444 --namespace live --track video --fps ${FPS:-30}
+      --recv-log /results/recv_log.csv --display-log /results/display_log.csv
+    volumes:
+      - ./results/${RUN:-compose}/sub1:/results

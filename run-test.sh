@@ -18,7 +18,7 @@ fi
 FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$VIDEO" |
     awk -F/ '{ printf "%g", ($2 ? $1 / $2 : $1) }')
 
-echo "=== MoQ Test: 1 publisher, 1 relay, 2 subscribers ==="
+echo "=== MoQ Test: 1 publisher, 1 relay, 1 subscriber ==="
 echo "Video:    $VIDEO"
 echo "Duration: ${DURATION}s"
 echo "FPS:      $FPS"
@@ -33,7 +33,7 @@ go build -o moq-relay ./cmd/relay/
 go build -o moq-subscriber ./cmd/subscriber/
 echo "[build] Done"
 
-mkdir -p "$RESULTS/sub1" "$RESULTS/sub2"
+mkdir -p "$RESULTS/sub1"
 
 PIDS=()
 cleanup() {
@@ -82,19 +82,6 @@ echo "[sub1]  Starting subscriber 1..."
     2>"$RESULTS/sub1/subscriber.log" &
 PIDS+=($!)
 
-# Start subscriber 2
-echo "[sub2]  Starting subscriber 2..."
-"$TESTBED/moq-subscriber" \
-    --relay 127.0.0.1:4444 \
-    --namespace live \
-    --track video \
-    --recv-log "$RESULTS/sub2/recv_log.csv" \
-    --display-log "$RESULTS/sub2/display_log.csv" \
-    --lua "$TESTBED/subscriber/framelog.lua" \
-    --fps "$FPS" \
-    2>"$RESULTS/sub2/subscriber.log" &
-PIDS+=($!)
-
 echo ""
 echo "[run]   All processes started. Running for ${DURATION}s..."
 sleep "$DURATION"
@@ -107,7 +94,7 @@ echo ""
 echo "=== Results ==="
 echo ""
 
-for name in manifest sub1/recv_log sub2/recv_log sub1/display_log sub2/display_log; do
+for name in manifest sub1/recv_log sub1/display_log; do
     file="$RESULTS/${name}.csv"
     if [ -f "$file" ]; then
         lines=$(($(wc -l < "$file") - 1)) # subtract header
@@ -125,18 +112,12 @@ echo ""
 echo "--- Sub 1 recv_log (first 5 data rows) ---"
 head -6 "$RESULTS/sub1/recv_log.csv" 2>/dev/null | column -t -s, || echo "(empty)"
 
-echo ""
-echo "--- Sub 2 recv_log (first 5 data rows) ---"
-head -6 "$RESULTS/sub2/recv_log.csv" 2>/dev/null | column -t -s, || echo "(empty)"
 
 echo ""
 echo "--- Sub 1 display_log (first 5 data rows) ---"
 head -6 "$RESULTS/sub1/display_log.csv" 2>/dev/null | column -t -s, || echo "(empty)"
 
-echo ""
-echo "--- Sub 2 display_log (first 5 data rows) ---"
-head -6 "$RESULTS/sub2/display_log.csv" 2>/dev/null | column -t -s, || echo "(empty)"
 
 echo ""
 echo "Full results in: $RESULTS"
-echo "Logs: publisher.log, relay.log, sub{1,2}/subscriber.log"
+echo "Logs: publisher.log, relay.log, sub1/subscriber.log"
