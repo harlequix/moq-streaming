@@ -4,21 +4,24 @@ set -euo pipefail
 TESTBED="$(cd "$(dirname "$0")" && pwd)"
 RESULTS="$TESTBED/results/$(date +%Y%m%d-%H%M%S)"
 
-VIDEO="${1:-$TESTBED/testdata/bbb_30s.mp4}"
-DURATION="${2:-15}" # seconds to run before stopping
+VIDEO="${1:-$TESTBED/testdata/testsrc_30s.mp4}"
+DURATION="${2:-30}" # seconds to run before stopping
 
 if [ ! -f "$VIDEO" ]; then
     echo "Video not found: $VIDEO"
     echo "Usage: $0 [video-file] [duration-seconds]"
     echo ""
-    echo "Default: testdata/bbb_30s.mp4 (download with: ./download-bbb.sh)"
-    echo "Quick test: $0 testdata/test_10s.mp4 12"
+    echo "Default: testdata/testsrc_30s.mp4"
     exit 1
 fi
+
+FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$VIDEO" |
+    awk -F/ '{ printf "%g", ($2 ? $1 / $2 : $1) }')
 
 echo "=== MoQ Test: 1 publisher, 1 relay, 2 subscribers ==="
 echo "Video:    $VIDEO"
 echo "Duration: ${DURATION}s"
+echo "FPS:      $FPS"
 echo "Results:  $RESULTS"
 echo ""
 
@@ -75,6 +78,7 @@ echo "[sub1]  Starting subscriber 1..."
     --recv-log "$RESULTS/sub1/recv_log.csv" \
     --display-log "$RESULTS/sub1/display_log.csv" \
     --lua "$TESTBED/subscriber/framelog.lua" \
+    --fps "$FPS" \
     2>"$RESULTS/sub1/subscriber.log" &
 PIDS+=($!)
 
@@ -87,6 +91,7 @@ echo "[sub2]  Starting subscriber 2..."
     --recv-log "$RESULTS/sub2/recv_log.csv" \
     --display-log "$RESULTS/sub2/display_log.csv" \
     --lua "$TESTBED/subscriber/framelog.lua" \
+    --fps "$FPS" \
     2>"$RESULTS/sub2/subscriber.log" &
 PIDS+=($!)
 
